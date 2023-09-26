@@ -9,20 +9,19 @@ impl Env {
         }
     }
 
-    pub fn load(&mut self, filename: &str) {
+    pub fn load_file(&mut self, filename: &str) {
         panic!("not implemented");
     }
 
-    /// Returns the value of the environment variable `key` if it exists, or `None` otherwise.
-    /// 
-    /// The value is loaded from these sources in order:
-    /// 
-    /// 1. OS environment variable
-    /// 2. `.env` file
-    /// 3. `.env.$APP_ENV` file
+    pub fn load_string(&mut self, contents: &str) {
+        // TODO: continue here
+        panic!("not implemented");
+    }
+
+    /// Returns the value of the environment variable `key` if it exists, or the `default` value otherwise.
     pub fn get(&self, key: &str, default: Option<String>) -> Option<String> {
         match std::env::var(key) {
-            Ok(env_value) => return Some(env_value),
+            Ok(env_value) => Some(env_value),
             Err(_) => default,
         }
     }
@@ -38,9 +37,20 @@ mod tests {
 
         std::env::set_var("FOO", "bar");
 
-        assert_eq!(env.get("FOO", None), Some("bar".to_string()));
+        assert_eq!(env.get("FOO", None), Some(String::from("bar")));
         assert_eq!(env.get("BAR", None), None);
-        assert_eq!(env.get("BAR", Some("default".to_string())), Some("default".to_string()));
+        assert_eq!(env.get("BAR", Some(String::from("default"))), Some(String::from("default")));
+    }
+
+    #[test]
+    fn it_prioritizes_environment_variable_value_over_loaded_one() {
+        let mut env = Env::new();
+
+        env.load_string("FOO=loaded");
+        assert_eq!(env.get("FOO", None), Some(String::from("loaded")));
+
+        std::env::set_var("FOO", "bar");
+        assert_eq!(env.get("FOO", None), Some(String::from("bar")));
     }
 }
 
