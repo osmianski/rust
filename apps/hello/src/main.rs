@@ -2,18 +2,22 @@ use std::collections::HashMap;
 use std::env;
 
 fn main() {
-    let mut command_definitions = HashMap::new();
+    let mut commands: CommandMap = HashMap::new();
 
-    command_definitions.insert("list", CommandDefiniton {
+    commands.insert("list", Command {
         description: "List available commands",
-        factory: || Box::new(ListCommand {
-            //commands: command_definitions.clone(),
-        }),
+        run_fn: |commands| {
+            for (key, value) in commands {
+                println!("{}: {}", key, value.description);
+            }
+        },
     });
 
-    command_definitions.insert("serve", CommandDefiniton {
+    commands.insert("serve", Command {
         description: "Run HTTP server",
-        factory: || Box::new(ServeCommand {}),
+        run_fn: |_| {
+            println!("Serve command");
+        },
     });
 
     // `args`` is an iterator over the command line arguments. The first argument is always
@@ -26,52 +30,30 @@ fn main() {
     // data of a `String` instance, and that instance would have to live as long as the `command_name`.
     let command_name = args.skip(1).next().unwrap_or("list".to_string());
 
-    let command_definition = command_definitions.get(command_name.as_str()).unwrap_or_else(|| {
+    let command = commands.get(command_name.as_str()).unwrap_or_else(|| {
         println!("Could not find command {}", command_name);
         std::process::exit(1);
     });
 
-    let command = (command_definition.factory)();
-
-    command.run();
+    (command.run_fn)(&commands);
 }
 
-trait Command {
-    fn run(&self);
-}
-
-struct CommandDefiniton<'a> {
+struct Command<'a> {
     // `'a` is a lifetime specifier. It means that the `CommandDefinition` struct 
     // cannot outlive the `description` string reference it contains. In practice,
     // the `CommandDefiniton` instances live as long as the `main()` function, and
     // the `description` strings are stored within the executable and here live as
     // long as the executable is running. Which is longer than the `main()` function.
-    #[allow(dead_code)]
     description: &'a str,
 
-    // `dyn FnOnce() -> Box<dyn Command>` is a pointer to a closure. It returns a `Box` - 
+    // `Box<dyn Fn(&CommandMap)>` is a pointer to a closure having 1 parameter and 
+    // returning no result. It returns a `Box` - 
     // a pointer to a heap-allocated object. The object is of type `dyn Command` -
     // a trait object. It means an instance of any type that implements the `Command`
     // trait. To sum up, the `factory` field is a closure pointer that returns a
     // pointer to a heap-allocated object of any type that implements the `Command`
     // trait.
-    factory: fn() -> Box<dyn Command>,
+    run_fn: fn(commands: &CommandMap),
 }
 
-struct ListCommand {
-    //commands: HashMap<&'a str, CommandDefiniton<'a>>,
-}
-
-impl Command for ListCommand {
-    fn run(&self) {
-        println!("List command");
-    }    
-}
-
-struct ServeCommand {}
-
-impl Command for ServeCommand {
-    fn run(&self) {
-        println!("Serve command");
-    }    
-}
+type CommandMap<'a> = HashMap<&'a str, Command<'a>>;
