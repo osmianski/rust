@@ -6,9 +6,9 @@ fn main() {
 
         commands.insert("list", cli::Command {
             description: "List available commands",
-            run_fn: |commands| {
-                for (key, value) in commands {
-                    println!("{}: {}", key, value.description);
+            run_fn: |commands: &cli::CommandMap| {
+                for (name, command) in commands {
+                    println!("{}: {}", name, command.description);
                 }
             },
         });
