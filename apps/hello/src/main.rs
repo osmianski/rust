@@ -1,7 +1,9 @@
 mod cli;
 
 fn main() {
-    cli::run(|commands| {
+    cli::run(|| {
+        let mut commands = cli::CommandMap::new();
+
         commands.insert("list", cli::Command {
             description: "List available commands",
             run_fn: |commands| {
@@ -17,5 +19,7 @@ fn main() {
                 println!("Serve command");
             },
         });
+
+        commands
     });
 }

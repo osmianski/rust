@@ -21,10 +21,10 @@ pub struct Command<'a> {
 
 pub type CommandMap<'a> = HashMap<&'a str, Command<'a>>;
 
-pub fn run<F>(f: F) where F: FnOnce(&mut CommandMap) {
-    let mut commands: CommandMap = CommandMap::new();
-
-    f(&mut commands);
+pub fn run<'a, F>(f: F) where F: FnOnce() -> CommandMap<'a> {
+    // The `f` callback creates and fills in a command hash map and returns it.
+    // The ownership of the hash map is moved to the `commands` variable.
+    let commands = f();
 
     // `args`` is an iterator over the command line arguments. The first argument is always
     // the name of the executable. The second optional argument is the name of the command.
