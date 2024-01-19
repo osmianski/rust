@@ -9,6 +9,9 @@ fn main() {
     // data of a `String` instance, and that instance would have to live as long as the `command_name`.
     let command_name = args.skip(1).next().unwrap_or("list".to_string());
 
+    // Match the command name against the list of predefined commands and execute the
+    // corresponding function. If the command is not found, print an error message and exit
+    // with a non-zero exit code.
     if command_name.eq("list") {
         list();
     } 
@@ -27,5 +30,5 @@ fn list() {
 }
 
 fn serve() {
-    unreachable!();
+    unimplemented!();
 }
