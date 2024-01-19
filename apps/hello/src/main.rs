@@ -1,4 +1,8 @@
+mod env;
+
 fn main() {
+    env::load(".env");
+
     // `args`` is an iterator over the command line arguments. The first argument is always
     // the name of the executable. The second optional argument is the name of the command.
     let args = std::env::args();
@@ -32,3 +36,4 @@ fn list() {
 fn serve() {
     unimplemented!();
 }
+
