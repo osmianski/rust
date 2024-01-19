@@ -1,6 +1,8 @@
 mod env;
 
 fn main() {
+    // Load the environment variables from the `.env` file. If the file does not exist,
+    // the function loads nothing.
     env::load(".env");
 
     // `args`` is an iterator over the command line arguments. The first argument is always
