@@ -10,9 +10,7 @@ fn main() {
     let args = std::env::args();
 
     // `args` iterator returns `String` instances. `command_name` owns the second argument
-    // if it exists, or is set to `"list"` otherwise. Note that the type is `String` and not
-    // `&str`. If we used `&str`, the `command_name` variable would be a reference to the
-    // data of a `String` instance, and that instance would have to live as long as the `command_name`.
+    // if it exists, or is set to `"list"` string otherwise. 
     let command_name = args.skip(1).next().unwrap_or("list".to_string());
 
     // Match the command name against the list of predefined commands and execute the
