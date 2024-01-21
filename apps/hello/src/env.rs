@@ -46,7 +46,9 @@ fn load_contents(contents: String) {
                         let name = &contents[name_offset..eq_offset];
                         let value = &contents[eq_offset + 1..offset];
 
-                        std::env::set_var(name, value);
+                        if value.len() > 0 {
+                            std::env::set_var(name, value);
+                        }
                     },
                     _ => {},
                 }
@@ -62,7 +64,9 @@ fn load_contents(contents: String) {
             let name = &contents[name_offset..eq_offset];
             let value = &contents[eq_offset + 1..offset];
 
-            std::env::set_var(name, value);
+            if value.len() > 0 {
+                std::env::set_var(name, value);
+            }
         },
         _ => {},
     }

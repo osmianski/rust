@@ -1,4 +1,5 @@
 mod env;
+mod http;
 
 fn main() {
     // Load the environment variables from the `.env` file. If the file does not exist,
@@ -34,6 +35,15 @@ fn list() {
 }
 
 fn serve() {
-    unimplemented!();
+    let port = std::env::var("APP_PORT").unwrap_or("8021".to_string());
+    let addr = format!("0.0.0.0:{}", port);
+
+    println!("HTTP server is running on {}", &addr);
+
+    let listener = std::net::TcpListener::bind(addr).unwrap();
+
+    for stream in listener.incoming() {
+        http::handle_connection(stream.unwrap());
+    }
 }
 
