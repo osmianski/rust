@@ -6,7 +6,7 @@
             "request": "launch",
             "name": "Debug",
             "program": "${workspaceRoot}/target/debug/hello",
-            "args": ["serve"],
+            "args": ["migrate"],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "build"
         }

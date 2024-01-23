@@ -1,3 +1,4 @@
+mod db;
 mod env;
 mod http;
 
@@ -23,6 +24,9 @@ fn main() {
     else if command_name.eq("serve") {
         serve();
     } 
+    else if command_name.eq("migrate") {
+        migrate();
+    } 
     else {
         println!("Could not find command {}", command_name);
         std::process::exit(1);
@@ -47,3 +51,35 @@ fn serve() {
     }
 }
 
+fn migrate() {
+    let path_str = db::path();
+    let path = std::path::Path::new(&path_str);
+
+    if path.exists() {
+        std::fs::remove_file(&path_str).unwrap();
+    }
+
+    if let Some(parent_path) = path.parent() {
+        std::fs::create_dir_all(parent_path).unwrap();
+    }
+
+    std::fs::File::create(&path_str).unwrap();
+
+    let db = db::connect();
+
+    db.execute("CREATE TABLE posts (
+        id INTEGER PRIMARY KEY,
+        title TEXT NOT NULL,
+        content TEXT
+    )", ()).unwrap();
+
+    db.execute("INSERT INTO posts (title) VALUES (?1)", (
+        "Hello world!".to_string(),
+    )).unwrap();
+
+    db.execute("INSERT INTO posts (title) VALUES (?1)", (
+        "Hello again!".to_string(),
+    )).unwrap();
+
+    println!("posts table migrated");
+}

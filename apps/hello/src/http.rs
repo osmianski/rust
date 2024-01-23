@@ -204,11 +204,17 @@ pub fn handle_connection(stream: std::net::TcpStream) {
 fn route(request: &mut Request) -> Response {
     if request.is("GET /") {
         home_show(request)
-    } else if request.is("GET /hello/{name}") {
+    } 
+    else if request.is("GET /hello/{name}") {
         hello_show(request)
-    } else if request.is("GET /hello/{name*}") {
+    } 
+    else if request.is("GET /hello/{name*}") {
         hi_show(request)
-    } else {
+    } 
+    else if request.is("GET /posts") {
+        posts_index(request)
+    } 
+    else {
         Response::not_found()
     }
 }
@@ -227,4 +233,25 @@ fn hi_show(request: &Request) -> Response {
     let text = format!("Hi, {}", request.parameters.get("name").unwrap());
 
     Response::plain_text(text)
+}
+
+fn posts_index(_request: &Request) -> Response {
+    let db = crate::db::connect();
+
+    let mut stmt = db.prepare("SELECT * FROM posts").unwrap();
+
+    let posts = stmt.query_map([], |row| {
+        Ok(crate::db::Post {
+            id: row.get(0)?,
+            title: row.get(1)?,
+            content: row.get(2)?,
+        })
+    }).unwrap();
+
+    let mut result = String::new();
+    for post in posts {
+        result.push_str(&format!("{:?}\n", post.unwrap()));
+    }
+
+    Response::plain_text(result)
 }
