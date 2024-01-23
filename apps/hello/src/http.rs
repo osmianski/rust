@@ -107,7 +107,7 @@ impl Request<'_> {
         }
 
         match state {
-            State::Uri | State::Slash => true,
+            State::Uri | State::Slash => offset == uri_bytes.len(),
             _ => false,
         }
     }
