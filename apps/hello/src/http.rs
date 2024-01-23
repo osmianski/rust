@@ -1,8 +1,8 @@
 use std::io::prelude::*;
 
-struct Request<'a> {
-    method: &'a str,
-    uri: &'a str,
+struct Request {
+    method: String,
+    uri: String,
 }
 
 enum State {
@@ -15,13 +15,40 @@ enum State {
 
 type Parameters = std::collections::HashMap<String, String>;
 
-impl Request<'_> {
-    pub fn is(&self, route: &str) -> bool {
+impl Request {
+    pub fn receive(stream: &std::net::TcpStream) -> Request {
+        // Collect the request (which end with an empty line) into a `Vec` - an expandable array
+        // of `String`s in the heap.
+        let http_request: Vec<_> = std::io::BufReader::new(stream)
+            .lines()
+            .map(|result| result.unwrap())
+            .take_while(|line| !line.is_empty())
+            .collect();
+
+        // Extract the request method and URI from the first line of the request.
+        let mut request_line = http_request[0].split(' ');
+        let method = String::from(request_line.next().unwrap());
+        let uri = String::from(request_line.next().unwrap());
+
+        let request = Request {
+            method,
+            uri,
+        };
+
+        print!("{method} {uri}", method = request.method, uri = request.uri);
+
+        request
+    }
+
+    pub fn is(&self, route: &str, parameters: &mut Parameters) -> bool {
         let mut state = State::Method;
         let mut offset = 0;
         let mut route_offset = 0;
         let method_bytes = self.method.as_bytes();
         let uri_bytes = self.uri.as_bytes();
+        let route_bytes = route.as_bytes();
+
+        parameters.clear();
 
         for c in route.bytes() {
             match state {
@@ -77,7 +104,10 @@ impl Request<'_> {
                                 next_offset += 1;
                             }
 
-                            // TODO: Add parameter to the parameters map
+                            parameters.insert(
+                                String::from_utf8_lossy(&route_bytes[parameter_offset..route_offset]).to_string(),
+                                String::from_utf8_lossy(&uri_bytes[offset..next_offset]).to_string(),
+                            );
 
                             state = State::Uri;
                             offset = next_offset;
@@ -85,16 +115,20 @@ impl Request<'_> {
                         _ => {},
                     }
                 },
-                State::WildcardParameter(_parameter_offset) => {
+                State::WildcardParameter(parameter_offset) => {
                     match c {
                         b'}' => {
                             if route_offset + 1 != route.len() {
                                 return false;
                             }
 
-                            // TODO: Add parameter to the parameters map
+                            parameters.insert(
+                                String::from_utf8_lossy(&route_bytes[parameter_offset..route_offset - 1]).to_string(),
+                                String::from_utf8_lossy(&uri_bytes[offset..]).to_string(),
+                            );
 
                             state = State::Uri;
+                            offset = uri_bytes.len();
                         },
                         _ => {
                             return false;
@@ -126,7 +160,7 @@ impl Response<'_> {
             status: 404,
             status_text: "Not found",
             headers: "",
-            body: "",
+            body: "Not found",
         }
     }
 
@@ -139,7 +173,7 @@ impl Response<'_> {
         }
     }
 
-    pub fn send(&self, mut stream: std::net::TcpStream) {
+    pub fn send(&self, mut stream: &std::net::TcpStream) {
         stream.write_all(format!(
             "HTTP/1.1 {status} {status_text}r\n{headers}\r\n{body}\r\n", 
             status = self.status,
@@ -153,30 +187,23 @@ impl Response<'_> {
     }
 }
 
-pub fn handle_connection(mut stream: std::net::TcpStream) {
-    // Collect the request (which end with an empty line) into a `Vec` - an expandable array
-    // of `String`s in the heap.
-    let http_request: Vec<_> = std::io::BufReader::new(&mut stream)
-        .lines()
-        .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
-        .collect();
+pub fn handle_connection(stream: std::net::TcpStream) {
+    let request = Request::receive(&stream);
+    let mut parameters = Parameters::new();
 
-    // Extract the request method and URI from the first line of the request.
-    let mut request_line = http_request[0].split(' ');
-    let method = request_line.next().unwrap();
-    let uri = request_line.next().unwrap();
+    if request.is("GET /", &mut parameters) {
+        return Response::plain_text("Hello").send(&stream);
+    }
+    else if request.is("GET /hello/{name}", &mut parameters) {
+        let text = format!("Hello, {}", parameters.get("name").unwrap());
 
-    let request = Request {
-        method,
-        uri,
-    };
+        return Response::plain_text(text.as_str()).send(&stream);
+    }
+    else if request.is("GET /hello/{name*}", &mut parameters) {
+        let text = format!("Hi, {}", parameters.get("name").unwrap());
 
-    print!("{method} {uri}", method = request.method, uri = request.uri);
-
-    if request.is("GET /") {
-        return Response::plain_text("Hello").send(stream);
+        return Response::plain_text(text.as_str()).send(&stream);
     }
 
-    Response::not_found().send(stream);
+    Response::not_found().send(&stream);
 }
