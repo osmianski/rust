@@ -151,25 +151,25 @@ impl Request {
 
 struct Response<'a> {
     status: u16,
-    status_text: &'a str,
+    status_text: String,
     headers: &'a str,
-    body: &'a str,
+    body: String,
 }
 
 impl Response<'_> {
     pub fn not_found<'a>() -> Response<'a> {
         Response {
             status: 404,
-            status_text: "Not found",
+            status_text: "Not found".to_string(),
             headers: "",
-            body: "Not found",
+            body: "Not found".to_string(),
         }
     }
 
-    pub fn plain_text<'a>(text: &'a str) -> Response<'a> {
+    pub fn plain_text<'a>(text: String) -> Response<'a> {
         Response {
             status: 200,
-            status_text: "Not found",
+            status_text: "OK".to_string(),
             headers: "",
             body: text,
         }
@@ -192,19 +192,35 @@ impl Response<'_> {
 pub fn handle_connection(stream: std::net::TcpStream) {
     let mut request = Request::receive(&stream);
 
+    let response = route(&mut request);
+
+    response.send(&stream);
+}
+
+fn route(request: &mut Request) -> Response {
     if request.is("GET /") {
-        return Response::plain_text("Hello").send(&stream);
+        home_show(request)
+    } else if request.is("GET /hello/{name}") {
+        hello_show(request)
+    } else if request.is("GET /hello/{name*}") {
+        hi_show(request)
+    } else {
+        Response::not_found()
     }
-    else if request.is("GET /hello/{name}") {
-        let text = format!("Hello, {}", request.parameters.get("name").unwrap());
+}
 
-        return Response::plain_text(text.as_str()).send(&stream);
-    }
-    else if request.is("GET /hello/{name*}") {
-        let text = format!("Hi, {}", request.parameters.get("name").unwrap());
+fn home_show(_request: &Request) -> Response {
+    Response::plain_text("Hello".to_string())
+}
 
-        return Response::plain_text(text.as_str()).send(&stream);
-    }
+fn hello_show(request: &Request) -> Response {
+    let text = format!("Hello, {}", request.parameters.get("name").unwrap());
 
-    Response::not_found().send(&stream);
+    Response::plain_text(text)
+}
+
+fn hi_show(request: &Request) -> Response {
+    let text = format!("Hi, {}", request.parameters.get("name").unwrap());
+
+    Response::plain_text(text)
 }
