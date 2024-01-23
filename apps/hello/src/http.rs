@@ -3,6 +3,7 @@ use std::io::prelude::*;
 struct Request {
     method: String,
     uri: String,
+    parameters: Parameters,
 }
 
 enum State {
@@ -33,6 +34,7 @@ impl Request {
         let request = Request {
             method,
             uri,
+            parameters: Parameters::new(),
         };
 
         print!("{method} {uri}", method = request.method, uri = request.uri);
@@ -40,7 +42,7 @@ impl Request {
         request
     }
 
-    pub fn is(&self, route: &str, parameters: &mut Parameters) -> bool {
+    pub fn is(&mut self, route: &str) -> bool {
         let mut state = State::Method;
         let mut offset = 0;
         let mut route_offset = 0;
@@ -48,7 +50,7 @@ impl Request {
         let uri_bytes = self.uri.as_bytes();
         let route_bytes = route.as_bytes();
 
-        parameters.clear();
+        self.parameters.clear();
 
         for c in route.bytes() {
             match state {
@@ -104,7 +106,7 @@ impl Request {
                                 next_offset += 1;
                             }
 
-                            parameters.insert(
+                            self.parameters.insert(
                                 String::from_utf8_lossy(&route_bytes[parameter_offset..route_offset]).to_string(),
                                 String::from_utf8_lossy(&uri_bytes[offset..next_offset]).to_string(),
                             );
@@ -122,7 +124,7 @@ impl Request {
                                 return false;
                             }
 
-                            parameters.insert(
+                            self.parameters.insert(
                                 String::from_utf8_lossy(&route_bytes[parameter_offset..route_offset - 1]).to_string(),
                                 String::from_utf8_lossy(&uri_bytes[offset..]).to_string(),
                             );
@@ -188,19 +190,18 @@ impl Response<'_> {
 }
 
 pub fn handle_connection(stream: std::net::TcpStream) {
-    let request = Request::receive(&stream);
-    let mut parameters = Parameters::new();
+    let mut request = Request::receive(&stream);
 
-    if request.is("GET /", &mut parameters) {
+    if request.is("GET /") {
         return Response::plain_text("Hello").send(&stream);
     }
-    else if request.is("GET /hello/{name}", &mut parameters) {
-        let text = format!("Hello, {}", parameters.get("name").unwrap());
+    else if request.is("GET /hello/{name}") {
+        let text = format!("Hello, {}", request.parameters.get("name").unwrap());
 
         return Response::plain_text(text.as_str()).send(&stream);
     }
-    else if request.is("GET /hello/{name*}", &mut parameters) {
-        let text = format!("Hi, {}", parameters.get("name").unwrap());
+    else if request.is("GET /hello/{name*}") {
+        let text = format!("Hi, {}", request.parameters.get("name").unwrap());
 
         return Response::plain_text(text.as_str()).send(&stream);
     }
