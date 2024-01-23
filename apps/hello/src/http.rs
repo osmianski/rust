@@ -17,6 +17,14 @@ enum State {
 type Parameters = std::collections::HashMap<String, String>;
 
 impl Request {
+    fn new(method: String, uri: String) -> Request {
+        Request {
+            method,
+            uri,
+            parameters: Parameters::new(),
+        }
+    }
+
     pub fn receive(stream: &std::net::TcpStream) -> Request {
         // Collect the request (which end with an empty line) into a `Vec` - an expandable array
         // of `String`s in the heap.
@@ -31,11 +39,7 @@ impl Request {
         let method = String::from(request_line.next().unwrap());
         let uri = String::from(request_line.next().unwrap());
 
-        let request = Request {
-            method,
-            uri,
-            parameters: Parameters::new(),
-        };
+        let request = Request::new(method, uri);
 
         print!("{method} {uri}", method = request.method, uri = request.uri);
 
