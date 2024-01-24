@@ -242,9 +242,9 @@ fn posts_index(_request: &Request) -> Response {
 
     let posts = stmt.query_map([], |row| {
         Ok(crate::db::Post {
-            id: row.get(0)?,
-            title: row.get(1)?,
-            content: row.get(2)?,
+            id: row.get("id")?,
+            title: row.get("title")?,
+            content: row.get("content")?,
         })
     }).unwrap();
 
