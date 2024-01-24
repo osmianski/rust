@@ -17,43 +17,34 @@ fn load_contents(contents: String) {
 
     for c in contents.chars() {
         match state {
-            State::Newline => {
-                match c {
-                    '\r' | '\n' => {},
-                    '#' => state = State::Comment,
-                    _ => state = State::Name(offset),
-                }
+            State::Newline => match c {
+                '\r' | '\n' => {}
+                '#' => state = State::Comment,
+                _ => state = State::Name(offset),
             },
-            State::Comment => {
-                match c {
-                    '\n' => state = State::Newline,
-                    _ => {},
-                }
+            State::Comment => match c {
+                '\n' => state = State::Newline,
+                _ => {}
             },
-            State::Name(name_offset) => {
-                match c {
-                    '=' => state = State::Value(name_offset, offset),
-                    '\r' | '\n' => state = State::Newline,
-                    _ => {},
-                }
+            State::Name(name_offset) => match c {
+                '=' => state = State::Value(name_offset, offset),
+                '\r' | '\n' => state = State::Newline,
+                _ => {}
             },
-            State::Value(name_offset, eq_offset) => {
-                match c {
-                    '\r' => {},
-                     '\n' => {
-                        state = State::Newline;
+            State::Value(name_offset, eq_offset) => match c {
+                '\r' => {}
+                '\n' => {
+                    state = State::Newline;
 
-                        let name = &contents[name_offset..eq_offset];
-                        let value = &contents[eq_offset + 1..offset];
+                    let name = &contents[name_offset..eq_offset];
+                    let value = &contents[eq_offset + 1..offset];
 
-                        if value.len() > 0 {
-                            std::env::set_var(name, value);
-                        }
-                    },
-                    _ => {},
+                    if value.len() > 0 {
+                        std::env::set_var(name, value);
+                    }
                 }
+                _ => {}
             },
-            
         }
 
         offset += c.len_utf8();
@@ -67,7 +58,7 @@ fn load_contents(contents: String) {
             if value.len() > 0 {
                 std::env::set_var(name, value);
             }
-        },
-        _ => {},
+        }
+        _ => {}
     }
 }

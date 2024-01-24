@@ -37,7 +37,7 @@ fn main() -> Result<(), Error> {
     let args = std::env::args();
 
     // `args` iterator returns `String` instances. `command_name` owns the second argument
-    // if it exists, or is set to `"list"` string otherwise. 
+    // if it exists, or is set to `"list"` string otherwise.
     let command_name = args.skip(1).next().unwrap_or("list".to_string());
 
     // Match the command name against the list of predefined commands and execute the
@@ -50,7 +50,7 @@ fn main() -> Result<(), Error> {
         _ => {
             println!("Could not find command {}", command_name);
             std::process::exit(1);
-        },
+        }
     }
 }
 
@@ -91,19 +91,24 @@ fn migrate() -> Result<(), Error> {
 
     let db = db::connect()?;
 
-    db.execute("CREATE TABLE posts (
-        id INTEGER PRIMARY KEY,
-        title TEXT NOT NULL,
-        content TEXT
-    )", ())?;
+    db.execute(
+        "CREATE TABLE posts (
+            id INTEGER PRIMARY KEY,
+            title TEXT NOT NULL,
+            content TEXT
+        )",
+        (),
+    )?;
 
-    db.execute("INSERT INTO posts (title) VALUES (?1)", (
-        "Hello world!".to_string(),
-    ))?;
+    db.execute(
+        "INSERT INTO posts (title) VALUES (?1)",
+        ("Hello world!".to_string(),),
+    )?;
 
-    db.execute("INSERT INTO posts (title) VALUES (?1)", (
-        "Hello again!".to_string(),
-    ))?;
+    db.execute(
+        "INSERT INTO posts (title) VALUES (?1)",
+        ("Hello again!".to_string(),),
+    )?;
 
     println!("posts table migrated");
 

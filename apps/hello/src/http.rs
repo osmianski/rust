@@ -43,10 +43,8 @@ impl Request {
 
         // Extract the request method and URI from the first line of the request.
         let mut request_line = http_request[0].split(' ');
-        let method = String::from(request_line.next()
-            .ok_or(Error::MethodExpected)?);
-        let uri = String::from(request_line.next()
-            .ok_or(Error::UriExpected)?);
+        let method = String::from(request_line.next().ok_or(Error::MethodExpected)?);
+        let uri = String::from(request_line.next().ok_or(Error::UriExpected)?);
 
         let request = Request::new(method, uri);
 
@@ -67,87 +65,83 @@ impl Request {
 
         for c in route.bytes() {
             match state {
-                State::Method => {
-                    match c {
-                        b' ' => {
-                            state = State::Uri;
-                        },
-                        _ => {
-                            if route_offset >= method_bytes.len() || c != method_bytes[route_offset] {
-                                return false;
-                            }
-                        },
+                State::Method => match c {
+                    b' ' => {
+                        state = State::Uri;
+                    }
+                    _ => {
+                        if route_offset >= method_bytes.len() || c != method_bytes[route_offset] {
+                            return false;
+                        }
                     }
                 },
                 State::Uri => {
                     if offset >= uri_bytes.len() || c != uri_bytes[offset] {
                         return false;
                     }
-        
+
                     match c {
                         b'/' => {
                             state = State::Slash;
-                        },
-                        _ => {},
+                        }
+                        _ => {}
                     }
 
                     offset += 1;
-                },
-                State::Slash => {
-                    match c {
-                        b'{' => {
-                            state = State::Parameter(route_offset + 1);
-                        },
-                        _ => {
-                            if offset >= uri_bytes.len() || c != uri_bytes[offset] {
-                                return false;
-                            }
-
-                            state = State::Uri;
-                            offset += 1;
-                        },
+                }
+                State::Slash => match c {
+                    b'{' => {
+                        state = State::Parameter(route_offset + 1);
                     }
-                },
-                State::Parameter(parameter_offset) => {
-                    match c {
-                        b'*' => {
-                            state = State::WildcardParameter(parameter_offset);
-                        },
-                        b'}' => {
-                            let mut next_offset = offset;
-                            while next_offset < uri_bytes.len() && uri_bytes[next_offset] != b'/' {
-                                next_offset += 1;
-                            }
-
-                            self.parameters.insert(
-                                String::from_utf8_lossy(&route_bytes[parameter_offset..route_offset]).to_string(),
-                                String::from_utf8_lossy(&uri_bytes[offset..next_offset]).to_string(),
-                            );
-
-                            state = State::Uri;
-                            offset = next_offset;
-                        },
-                        _ => {},
-                    }
-                },
-                State::WildcardParameter(parameter_offset) => {
-                    match c {
-                        b'}' => {
-                            if route_offset + 1 != route.len() {
-                                return false;
-                            }
-
-                            self.parameters.insert(
-                                String::from_utf8_lossy(&route_bytes[parameter_offset..route_offset - 1]).to_string(),
-                                String::from_utf8_lossy(&uri_bytes[offset..]).to_string(),
-                            );
-
-                            state = State::Uri;
-                            offset = uri_bytes.len();
-                        },
-                        _ => {
+                    _ => {
+                        if offset >= uri_bytes.len() || c != uri_bytes[offset] {
                             return false;
-                        },
+                        }
+
+                        state = State::Uri;
+                        offset += 1;
+                    }
+                },
+                State::Parameter(parameter_offset) => match c {
+                    b'*' => {
+                        state = State::WildcardParameter(parameter_offset);
+                    }
+                    b'}' => {
+                        let mut next_offset = offset;
+                        while next_offset < uri_bytes.len() && uri_bytes[next_offset] != b'/' {
+                            next_offset += 1;
+                        }
+
+                        self.parameters.insert(
+                            String::from_utf8_lossy(&route_bytes[parameter_offset..route_offset])
+                                .to_string(),
+                            String::from_utf8_lossy(&uri_bytes[offset..next_offset]).to_string(),
+                        );
+
+                        state = State::Uri;
+                        offset = next_offset;
+                    }
+                    _ => {}
+                },
+                State::WildcardParameter(parameter_offset) => match c {
+                    b'}' => {
+                        if route_offset + 1 != route.len() {
+                            return false;
+                        }
+
+                        self.parameters.insert(
+                            String::from_utf8_lossy(
+                                &route_bytes[parameter_offset..route_offset - 1],
+                            )
+                            .to_string(),
+                            String::from_utf8_lossy(&uri_bytes[offset..]).to_string(),
+                        );
+
+                        state = State::Uri;
+                        offset = uri_bytes.len();
+                    }
+                    _ => {
+                        return false;
                     }
                 },
             }
@@ -198,18 +192,20 @@ impl Response<'_> {
     }
 
     pub fn send(&self, mut stream: &std::net::TcpStream) -> Result<(), crate::Error> {
-        stream.write_all(format!(
-            "HTTP/1.1 {status} {status_text}r\n{headers}\r\n{body}\r\n", 
-            status = self.status,
-            status_text = self.status_text,
-            headers = self.headers,
-            body = self.body,
-        ).as_bytes())?;
-    
+        stream.write_all(
+            format!(
+                "HTTP/1.1 {status} {status_text}r\n{headers}\r\n{body}\r\n",
+                status = self.status,
+                status_text = self.status_text,
+                headers = self.headers,
+                body = self.body,
+            )
+            .as_bytes(),
+        )?;
+
         println!(" -> {status}", status = self.status);
 
         Ok(())
-            
     }
 }
 
@@ -231,17 +227,13 @@ fn handle_errors(result: Result<Response, crate::Error>) -> Response {
 fn route(request: &mut Request) -> Result<Response, crate::Error> {
     if request.is("GET /") {
         home_show(request)
-    } 
-    else if request.is("GET /hello/{name}") {
+    } else if request.is("GET /hello/{name}") {
         hello_show(request)
-    } 
-    else if request.is("GET /hello/{name*}") {
+    } else if request.is("GET /hello/{name*}") {
         hi_show(request)
-    } 
-    else if request.is("GET /posts") {
+    } else if request.is("GET /posts") {
         posts_index(request)
-    } 
-    else {
+    } else {
         Ok(Response::not_found())
     }
 }
@@ -252,8 +244,10 @@ fn home_show(_request: &Request) -> Result<Response, crate::Error> {
 
 fn hello_show(request: &Request) -> Result<Response, crate::Error> {
     let text = format!(
-        "Hello, {}", 
-        request.parameters.get("name")
+        "Hello, {}",
+        request
+            .parameters
+            .get("name")
             .ok_or(Error::ParameterExpected("name"))?,
     );
 
@@ -262,8 +256,10 @@ fn hello_show(request: &Request) -> Result<Response, crate::Error> {
 
 fn hi_show(request: &Request) -> Result<Response, crate::Error> {
     let text = format!(
-        "Hi, {}", 
-        request.parameters.get("name")
+        "Hi, {}",
+        request
+            .parameters
+            .get("name")
             .ok_or(Error::ParameterExpected("name"))?
     );
 
