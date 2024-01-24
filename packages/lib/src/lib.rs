@@ -1,3 +1,1 @@
-pub fn foo() {
-    println!("Hello, world!");
-}
+mod env;
