@@ -1,7 +1,7 @@
-pub fn connect() -> rusqlite::Connection {
+pub fn connect() -> Result<rusqlite::Connection, crate::Error> {
     let path = path();
 
-    rusqlite::Connection::open(&path).unwrap()
+    Ok(rusqlite::Connection::open(&path)?)
 }
 
 pub fn path() -> String {

@@ -1,5 +1,12 @@
 use std::io::prelude::*;
 
+#[derive(Debug)]
+pub enum Error {
+    MethodExpected,
+    UriExpected,
+    ParameterExpected(&'static str),
+}
+
 struct Request {
     method: String,
     uri: String,
@@ -25,7 +32,7 @@ impl Request {
         }
     }
 
-    pub fn receive(stream: &std::net::TcpStream) -> Request {
+    pub fn receive(stream: &std::net::TcpStream) -> Result<Request, crate::Error> {
         // Collect the request (which end with an empty line) into a `Vec` - an expandable array
         // of `String`s in the heap.
         let http_request: Vec<_> = std::io::BufReader::new(stream)
@@ -36,14 +43,16 @@ impl Request {
 
         // Extract the request method and URI from the first line of the request.
         let mut request_line = http_request[0].split(' ');
-        let method = String::from(request_line.next().unwrap());
-        let uri = String::from(request_line.next().unwrap());
+        let method = String::from(request_line.next()
+            .ok_or(Error::MethodExpected)?);
+        let uri = String::from(request_line.next()
+            .ok_or(Error::UriExpected)?);
 
         let request = Request::new(method, uri);
 
         print!("{method} {uri}", method = request.method, uri = request.uri);
 
-        request
+        Ok(request)
     }
 
     pub fn is(&mut self, route: &str) -> bool {
@@ -161,6 +170,15 @@ struct Response<'a> {
 }
 
 impl Response<'_> {
+    pub fn error<'a>(err: crate::Error) -> Response<'a> {
+        Response {
+            status: 500,
+            status_text: "Server error".to_string(),
+            headers: "",
+            body: format!("{:?}", err),
+        }
+    }
+
     pub fn not_found<'a>() -> Response<'a> {
         Response {
             status: 404,
@@ -179,29 +197,38 @@ impl Response<'_> {
         }
     }
 
-    pub fn send(&self, mut stream: &std::net::TcpStream) {
+    pub fn send(&self, mut stream: &std::net::TcpStream) -> Result<(), crate::Error> {
         stream.write_all(format!(
             "HTTP/1.1 {status} {status_text}r\n{headers}\r\n{body}\r\n", 
             status = self.status,
             status_text = self.status_text,
             headers = self.headers,
             body = self.body,
-        ).as_bytes()).unwrap();
+        ).as_bytes())?;
     
         println!(" -> {status}", status = self.status);
+
+        Ok(())
             
     }
 }
 
-pub fn handle_connection(stream: std::net::TcpStream) {
-    let mut request = Request::receive(&stream);
+pub fn handle_connection(stream: std::net::TcpStream) -> Result<(), crate::Error> {
+    let mut request = Request::receive(&stream)?;
 
-    let response = route(&mut request);
+    let response = handle_errors(route(&mut request));
 
-    response.send(&stream);
+    response.send(&stream)
 }
 
-fn route(request: &mut Request) -> Response {
+fn handle_errors(result: Result<Response, crate::Error>) -> Response {
+    match result {
+        Ok(response) => response,
+        Err(err) => Response::error(err),
+    }
+}
+
+fn route(request: &mut Request) -> Result<Response, crate::Error> {
     if request.is("GET /") {
         home_show(request)
     } 
@@ -215,30 +242,38 @@ fn route(request: &mut Request) -> Response {
         posts_index(request)
     } 
     else {
-        Response::not_found()
+        Ok(Response::not_found())
     }
 }
 
-fn home_show(_request: &Request) -> Response {
-    Response::plain_text("Hello".to_string())
+fn home_show(_request: &Request) -> Result<Response, crate::Error> {
+    Ok(Response::plain_text("Hello".to_string()))
 }
 
-fn hello_show(request: &Request) -> Response {
-    let text = format!("Hello, {}", request.parameters.get("name").unwrap());
+fn hello_show(request: &Request) -> Result<Response, crate::Error> {
+    let text = format!(
+        "Hello, {}", 
+        request.parameters.get("name")
+            .ok_or(Error::ParameterExpected("name"))?,
+    );
 
-    Response::plain_text(text)
+    Ok(Response::plain_text(text))
 }
 
-fn hi_show(request: &Request) -> Response {
-    let text = format!("Hi, {}", request.parameters.get("name").unwrap());
+fn hi_show(request: &Request) -> Result<Response, crate::Error> {
+    let text = format!(
+        "Hi, {}", 
+        request.parameters.get("name")
+            .ok_or(Error::ParameterExpected("name"))?
+    );
 
-    Response::plain_text(text)
+    Ok(Response::plain_text(text))
 }
 
-fn posts_index(_request: &Request) -> Response {
-    let db = crate::db::connect();
+fn posts_index(_request: &Request) -> Result<Response, crate::Error> {
+    let db = crate::db::connect()?;
 
-    let mut stmt = db.prepare("SELECT * FROM posts").unwrap();
+    let mut stmt = db.prepare("SELECT * FROM posts")?;
 
     let posts = stmt.query_map([], |row| {
         Ok(crate::db::Post {
@@ -246,12 +281,12 @@ fn posts_index(_request: &Request) -> Response {
             title: row.get("title")?,
             content: row.get("content")?,
         })
-    }).unwrap();
+    })?;
 
     let mut result = String::new();
     for post in posts {
-        result.push_str(&format!("{:?}\n", post.unwrap()));
+        result.push_str(&format!("{:?}\n", post?));
     }
 
-    Response::plain_text(result)
+    Ok(Response::plain_text(result))
 }
