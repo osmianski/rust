@@ -286,3 +286,32 @@ fn posts_index(_request: &Request) -> Result<Response, crate::Error> {
 
     Ok(Response::plain_text(result))
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::http::Request;
+
+    #[test]
+    fn it_matches_routes_without_parameters() {
+        let mut request = Request::new("GET".to_string(), "/".to_string());
+
+        assert!(request.is("GET /"));
+    }
+
+    #[test]
+    fn it_matches_routes_with_parameters() {
+        let mut request = Request::new("GET".to_string(), "/foo/bar".to_string());
+
+        assert!(request.is("GET /{param1}/{param2}"));
+        assert_eq!(request.parameters.get("param1").unwrap(), "foo");
+        assert_eq!(request.parameters.get("param2").unwrap(), "bar");
+    }
+
+    #[test]
+    fn it_matches_routes_with_wildcard_parameters() {
+        let mut request = Request::new("GET".to_string(), "/foo/bar".to_string());
+
+        assert!(request.is("GET /{param*}"));
+        assert_eq!(request.parameters.get("param").unwrap(), "foo/bar");
+    }
+}
