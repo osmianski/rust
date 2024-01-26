@@ -193,3 +193,16 @@ impl Response {
     }
 }
 
+pub struct Fake {
+    response: Response,
+}
+
+impl Fake {
+    pub fn new(response: Response) -> Fake {
+        Fake { response }
+    }
+
+    pub fn see(&self, s: &str) -> bool {
+        self.response.body.contains(s)
+    }
+}

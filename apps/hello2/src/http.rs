@@ -32,13 +32,24 @@ fn handle_connection_but_not_errors(console: &mut Console, stream: &TcpStream) -
     Ok(())
 }
 
+#[cfg(test)]
+pub mod fake {
+    use lib::http::{Fake, Request};
+
+    pub fn get(uri: &'static str) -> Fake {
+        let mut request = Request::new("GET".to_string(), uri.to_string());
+
+        Fake::new(super::handle(&mut request).unwrap())
+    }
+}
+
 fn handle(request: &mut Request) -> Result<Response> {
     route(request)
 }
 
 fn route(request: &mut Request) -> Result<Response> {
     if request.is("GET /") {
-        home::show(request)
+        home::show::handle(request)
     }
     else {
         Ok(Response::not_found())
