@@ -1,4 +1,7 @@
-use std::{env, io, io::{Stdout, Write, Result}};
+use std::{
+    env, io,
+    io::{Result, Stdout, Write},
+};
 
 pub struct Command {
     pub name: String,
@@ -7,26 +10,16 @@ pub struct Command {
 impl Command {
     pub fn from_args() -> Command {
         let args = env::args();
-        let name = args
-            .skip(1)
-            .next()
-            .unwrap_or("list".to_string());
+        let name = args.skip(1).next().unwrap_or("list".to_string());
 
-        Command {
-            name,
-        }
+        Command { name }
     }
 
     pub fn from_str(s: &str) -> Command {
         let mut args = s.split_whitespace();
-        let name = args
-            .next()
-            .unwrap_or("list")
-            .to_string();
+        let name = args.next().unwrap_or("list").to_string();
 
-        Command {
-            name,
-        }
+        Command { name }
     }
 }
 
@@ -36,9 +29,7 @@ pub struct Fake {
 
 impl Fake {
     pub fn new(output: String) -> Fake {
-        Fake {
-            output,
-        }
+        Fake { output }
     }
 
     pub fn see(&self, s: &str) -> bool {
@@ -49,7 +40,6 @@ impl Fake {
 pub enum Console {
     Real(Stdout),
     Fake(Vec<u8>),
-
 }
 
 impl Console {

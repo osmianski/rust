@@ -1,7 +1,9 @@
 mod home;
 
 use crate::basics::Result;
-use lib::{cli::Console, http::{Request, Response}};
+use lib::cli::Console;
+use lib::http::Request;
+use lib::http::Response;
 use std::net::TcpStream;
 
 pub fn handle_connection(console: &mut Console, stream: &TcpStream) -> Result<()> {
@@ -11,7 +13,7 @@ pub fn handle_connection(console: &mut Console, stream: &TcpStream) -> Result<()
             status_text: "Server error".to_string(),
             body: format!("{:?}", err),
         };
-        
+
         let _ = response.send(&stream);
     }
 
@@ -50,8 +52,7 @@ fn handle(request: &mut Request) -> Result<Response> {
 fn route(request: &mut Request) -> Result<Response> {
     if request.is("GET /") {
         home::show::handle(request)
-    }
-    else {
+    } else {
         Ok(Response::not_found())
     }
 }

@@ -2,8 +2,8 @@ mod basics;
 mod cli;
 mod http;
 
-use lib::env;
 use crate::basics::Result;
+use lib::env;
 
 fn main() -> Result<()> {
     env::load(".env");
