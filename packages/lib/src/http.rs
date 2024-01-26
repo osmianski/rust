@@ -7,12 +7,14 @@ pub enum Error {
     MethodExpected,
     UriExpected,
     ParameterExpected(&'static str),
+    HeaderExpected,
 }
 
 pub struct Request {
     pub method: String,
     pub uri: String,
     pub parameters: Parameters,
+    pub headers: Headers,
 }
 
 enum State {
@@ -24,6 +26,7 @@ enum State {
 }
 
 pub type Parameters = std::collections::HashMap<String, String>;
+pub type Headers = std::collections::HashMap<String, String>;
 
 impl Request {
     pub fn new(method: String, uri: String) -> Request {
@@ -31,24 +34,57 @@ impl Request {
             method,
             uri,
             parameters: Parameters::new(),
+            headers: Headers::new(),
         }
     }
 
     pub fn receive_headers(stream: &std::net::TcpStream) -> Result<Request, Error> {
-        // Collect the request (which end with an empty line) into a `Vec` - an expandable array
-        // of `String`s in the heap.
-        let http_request: Vec<_> = std::io::BufReader::new(stream)
-            .lines()
-            .map(|result| result.unwrap())
-            .take_while(|line| !line.is_empty())
-            .collect();
+        enum State {
+            StartLine,
+            Headers(Request),
+        }
+        let lines = std::io::BufReader::new(stream).lines();
+        let mut state = State::StartLine;
 
-        // Extract the request method and URI from the first line of the request.
-        let mut request_line = http_request[0].split(' ');
-        let method = String::from(request_line.next().ok_or(Error::MethodExpected)?);
-        let uri = String::from(request_line.next().ok_or(Error::UriExpected)?);
+        for line in lines {
+            match line {
+                Ok(line) => {
+                    if line.is_empty() {
+                        break;
+                    }
 
-        Ok(Request::new(method, uri))
+                    match state {
+                        State::StartLine => {
+                            let mut parts = line.split_whitespace();
+                            let method = parts.next().ok_or(Error::MethodExpected)?;
+                            let uri = parts.next().ok_or(Error::UriExpected)?;
+                            let request = Request::new(method.to_string(), uri.to_string());
+
+                            state = State::Headers(request);
+                        }
+
+                        State::Headers(mut request) => {
+                            let pos = line.find(':').ok_or(Error::HeaderExpected)?;
+
+                            request.headers.insert(
+                                line[..pos].trim().to_lowercase().to_string(),
+                                line[pos + 1..].trim().to_string(),
+                            );
+
+                            state = State::Headers(request);
+                        }
+                    }
+                }
+                Err(e) => {
+                    return Err(Error::Io(e));
+                }
+            }
+        }
+
+        match state {
+            State::StartLine => Err(Error::MethodExpected),
+            State::Headers(request) => Ok(request),
+        }
     }
 
     pub fn is(&mut self, route: &str) -> bool {
