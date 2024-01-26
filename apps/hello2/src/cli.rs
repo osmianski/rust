@@ -1,8 +1,11 @@
-use std::io::stdout;
-use crate::basics::Error;
-use lib::{cli, cli::{Command, Console}};
+mod list;
+mod serve;
 
-pub fn run() -> Result<(), Error> {
+use crate::basics::Result;
+use lib::{cli, cli::{Command, Console}};
+use std::io::stdout;
+
+pub fn run() -> Result<()> {
     let command = Command::from_args();
     let mut console = Console::Real(stdout());
 
@@ -11,34 +14,24 @@ pub fn run() -> Result<(), Error> {
 
 #[cfg(test)]
 pub mod fake {
-    use super::*;
-    use lib::cli::Fake;
+    use lib::cli::{Command, Console, Fake};
     
     pub fn run(args: &'static str) -> Fake {
         let command = Command::from_str(args);
         let mut console = Console::Fake(Vec::new());
     
-        dispatch(&command, &mut console).unwrap();
+        super::dispatch(&command, &mut console).unwrap();
     
         Fake::new(console.output())
     }    
 }
 
-fn dispatch(command: &Command, console: &mut Console) -> Result<(), Error> {
+fn dispatch(command: &Command, console: &mut Console) -> Result<()> {
     match command.name.as_str() {
-        "list" => list(console)?,
+        "list" => list::run(console)?,
+        "serve" => serve::run(console)?,
         _ => cli::not_found(command, console)?,
     };
 
     Ok(())
 }
-
-fn list(console: &mut Console) -> Result<(), Error> {
-    console.write("
-list                        List available commands
-    
-")?;
-
-    Ok(())
-}
-
