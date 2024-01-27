@@ -19,6 +19,10 @@ pub fn handle_connection(console: &mut Console, stream: &TcpStream) -> Result<()
 fn handle_connection_but_not_errors(console: &mut Console, stream: &TcpStream) -> Result<()> {
     let mut request = Request::receive_headers(&stream)?;
 
+    if request.headers.get("x-requested-with").is_some() {
+        console.write("XHR ")?;
+    }
+    
     console.write(format!("{} {}", request.method, request.uri).as_str())?;
 
     let response = handle(&mut request)?;
