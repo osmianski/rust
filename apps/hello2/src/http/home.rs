@@ -3,9 +3,12 @@ pub mod show {
     use crate::inertia;
     use lib::http::Request;
     use lib::http::Response;
+    use serde_json::json;
 
     pub fn handle(_request: &Request) -> Result<Response> {
-        Ok(inertia::response("{}".to_string()))
+        Ok(inertia::response("Home", json!({
+            "foo": "bar"
+        }).to_string()))
     }
 
     #[cfg(test)]

@@ -1,11 +1,15 @@
+use lib::http::escape_html;
 use lib::http::Response;
 
-pub fn response(data: String) -> Response {
+pub fn response(component: &str, props: String) -> Response {
     let vite_port = std::env::var("VITE_PORT").unwrap_or("5173".to_string());
+
     let vite = format!("
 <script type=\"module\" src=\"http://127.0.0.1:{vite_port}/@vite/client\"></script>
 <script type=\"module\" src=\"http://127.0.0.1:{vite_port}/js/app.js\"></script>
 ");
+
+    let data = escape_html(format!("{{\"component\":\"{component}\",\"props\":{props}}}"));
 
     Response::html(format!(
             "<!DOCTYPE html>
