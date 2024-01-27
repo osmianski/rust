@@ -39,7 +39,7 @@ impl Request {
     }
 
     pub fn receive_headers(stream: &std::net::TcpStream) -> Result<Request, Error> {
-        let print = true;
+        let print_headers = false;
 
         enum State {
             StartLine,
@@ -48,7 +48,7 @@ impl Request {
         let lines = std::io::BufReader::new(stream).lines();
         let mut state = State::StartLine;
 
-        if print {
+        if print_headers {
             println!("");
         }
 
@@ -59,7 +59,7 @@ impl Request {
                         break;
                     }
 
-                    if print {
+                    if print_headers {
                         println!("{}", line);
                     }
 
@@ -91,7 +91,7 @@ impl Request {
             }
         }
 
-        if print {
+        if print_headers {
             println!("");
         }
 
