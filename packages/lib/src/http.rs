@@ -39,6 +39,8 @@ impl Request {
     }
 
     pub fn receive_headers(stream: &std::net::TcpStream) -> Result<Request, Error> {
+        let print = true;
+
         enum State {
             StartLine,
             Headers(Request),
@@ -46,11 +48,19 @@ impl Request {
         let lines = std::io::BufReader::new(stream).lines();
         let mut state = State::StartLine;
 
+        if print {
+            println!("");
+        }
+
         for line in lines {
             match line {
                 Ok(line) => {
                     if line.is_empty() {
                         break;
+                    }
+
+                    if print {
+                        println!("{}", line);
                     }
 
                     match state {
@@ -79,6 +89,10 @@ impl Request {
                     return Err(Error::Io(e));
                 }
             }
+        }
+
+        if print {
+            println!("");
         }
 
         match state {
@@ -207,7 +221,7 @@ impl Response {
         };
 
         response.header("Cache-Control".to_string(), "no-cache, private".to_string());
-        response.header("Server".to_string(), "Rust".to_string());
+        response.header("X-Powered-By".to_string(), "simplicity".to_string());
 
         response
     }
@@ -228,6 +242,22 @@ impl Response {
         let mut response = Response::new(200, "OK".to_string(), text);
 
         response.header("Content-Type".to_string(), "text/plain; charset=UTF-8".to_string());
+
+        response
+    }
+
+    pub fn html(html: String) -> Response {
+        let mut response = Response::new(200, "OK".to_string(), html);
+
+        response.header("Content-Type".to_string(), "text/html; charset=UTF-8".to_string());
+
+        response
+    }
+
+    pub fn json(json: String) -> Response {
+        let mut response = Response::new(200, "OK".to_string(), json);
+
+        response.header("Content-Type".to_string(), "application/json".to_string());
 
         response
     }
