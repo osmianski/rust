@@ -1,10 +1,11 @@
 pub mod show {
     use crate::basics::Result;
+    use crate::inertia;
     use lib::http::Request;
     use lib::http::Response;
 
     pub fn handle(_request: &Request) -> Result<Response> {
-        Ok(Response::plain_text("Hello".to_string()))
+        Ok(inertia::response("{}".to_string()))
     }
 
     #[cfg(test)]
