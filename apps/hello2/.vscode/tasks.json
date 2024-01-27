@@ -10,6 +10,13 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "vite",
+            "type": "npm",
+            "script": "dev",
+            "problemMatcher": [],
+            "runOptions": { "runOn": "folderOpen" } 
         }
     ]
 }
