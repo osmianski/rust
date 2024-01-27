@@ -5,8 +5,8 @@ pub mod show {
     use lib::http::Response;
     use serde_json::json;
 
-    pub fn handle(_request: &Request) -> Result<Response> {
-        Ok(inertia::response("Home", json!({
+    pub fn handle(request: &Request) -> Result<Response> {
+        Ok(inertia::response(request, "Home", json!({
             "foo": "bar"
         }).to_string()))
     }
