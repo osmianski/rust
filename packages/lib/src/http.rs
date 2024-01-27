@@ -194,36 +194,69 @@ pub struct Response {
     pub status: u16,
     pub status_text: String,
     pub body: String,
+    pub headers: Headers,
 }
 
 impl Response {
+    pub fn new(status: u16, status_text: String, body: String) -> Response {
+        let mut response = Response {
+            status,
+            status_text,
+            body,
+            headers: Headers::new(),
+        };
+
+        response.header("Cache-Control".to_string(), "no-cache, private".to_string());
+        response.header("Server".to_string(), "Rust".to_string());
+
+        response
+    }
+
+    pub fn new_from_str(status: u16, status_text: &str, body: &str) -> Response {
+        Response::new(status, status_text.to_string(), body.to_string())
+    }
+
     pub fn not_found() -> Response {
-        Response {
-            status: 404,
-            status_text: "Not found".to_string(),
-            body: "Not found".to_string(),
-        }
+        let mut response = Response::new_from_str(404, "Not found", "Not found");
+
+        response.header("Content-Type".to_string(), "text/plain; charset=UTF-8".to_string());
+
+        response
     }
 
     pub fn plain_text(text: String) -> Response {
-        Response {
-            status: 200,
-            status_text: "OK".to_string(),
-            body: text,
-        }
+        let mut response = Response::new(200, "OK".to_string(), text);
+
+        response.header("Content-Type".to_string(), "text/plain; charset=UTF-8".to_string());
+
+        response
+    }
+
+    pub fn header(&mut self, name: String, value: String) {
+        self.headers.insert(name, value);
     }
 
     pub fn send(&self, mut stream: &std::net::TcpStream) -> Result<(), io::Error> {
-        stream.write_all(
-            format!(
-                "HTTP/1.1 {status} {status_text}r\n{headers}\r\n{body}\r\n",
-                status = self.status,
-                status_text = self.status_text,
-                headers = "",
-                body = self.body,
-            )
-            .as_bytes(),
-        )?;
+        let mut s = String::new();
+
+        s.push_str("HTTP/1.1 ");
+        s.push_str(&self.status.to_string());
+        s.push_str(" ");
+        s.push_str(&self.status_text);
+        s.push_str("\r\n");
+
+        for (name, value) in &self.headers {
+            s.push_str(name);
+            s.push_str(": ");
+            s.push_str(value);
+            s.push_str("\r\n");
+        }
+
+        s.push_str("\r\n");
+        s.push_str(&self.body);
+        s.push_str("\r\n");
+        
+        stream.write_all(s.as_bytes())?;
 
         Ok(())
     }

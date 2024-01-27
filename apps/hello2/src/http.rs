@@ -8,11 +8,7 @@ use std::net::TcpStream;
 
 pub fn handle_connection(console: &mut Console, stream: &TcpStream) -> Result<()> {
     if let Err(err) = handle_connection_but_not_errors(console, &stream) {
-        let response = Response {
-            status: 500,
-            status_text: "Server error".to_string(),
-            body: format!("{:?}", err),
-        };
+        let response = Response::new(500, "Server error".to_string(), format!("{:?}", err));
 
         let _ = response.send(&stream);
     }
