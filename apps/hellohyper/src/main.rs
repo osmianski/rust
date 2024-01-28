@@ -45,3 +45,27 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 async fn hello(_: Request<hyper::body::Incoming>) -> Result<Response<Full<Bytes>>, Infallible> {
     Ok(Response::new(Full::new(Bytes::from("Hello, World!"))))
 }
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    #[test]
+    fn it_casts_any_error_to_box_dyn_error() {
+        if let Err(err) = outer() {
+            println!("Error: {}", err);
+            return;
+        }
+
+        assert!(false);
+    }
+
+    fn outer() -> Result<(), Box<dyn Error>> {
+        inner()?;
+        Ok(())
+    }
+
+    fn inner() -> Result<(), std::io::Error> {
+        Err(std::io::Error::new(std::io::ErrorKind::Other, "test"))
+    }
+}
