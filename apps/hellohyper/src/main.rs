@@ -1,20 +1,24 @@
-use std::convert::Infallible;
-use std::net::SocketAddr;
-
 use http_body_util::Full;
 use hyper::body::Bytes;
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Request, Response};
 use hyper_util::rt::TokioIo;
+use lib::env;
+use std::convert::Infallible;
+use std::error::Error;
+use std::net::SocketAddr;
 use tokio::net::TcpListener;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+    env::load(".env");
 
-    // We create a TcpListener and bind it to 127.0.0.1:3000
+    let port = std::env::var("APP_PORT").unwrap_or("8000".to_string());
+    let addr = SocketAddr::from(([0, 0, 0, 0], port.parse::<u16>().unwrap()));
     let listener = TcpListener::bind(addr).await?;
+
+    println!("HTTP server is running on {}", &addr);
 
     // We start a loop to continuously accept incoming connections
     loop {
