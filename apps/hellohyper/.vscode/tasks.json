@@ -1,0 +1,22 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "cargo build",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "vite",
+            "type": "npm",
+            "script": "dev",
+            "problemMatcher": [],
+            "runOptions": { "runOn": "folderOpen" } 
+        }
+    ]
+}

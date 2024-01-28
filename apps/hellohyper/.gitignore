@@ -1,0 +1,5 @@
+/.env
+/.env.testing
+/node_modules
+/storage
+/target
